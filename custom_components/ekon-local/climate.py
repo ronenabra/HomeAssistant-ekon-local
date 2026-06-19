@@ -174,6 +174,11 @@ class HAEkonLocalClimateController:
     def my_call_later(self, time, fn):
         self.hass.helpers.event.async_call_later(time, fn)
 
+    def _schedule_device_state_update(self):
+        self.hass.loop.call_soon_threadsafe(
+            self._devices[0].async_schedule_update_ha_state
+        )
+
     async def add_device(self, newdev):
         self._async_add_entities([newdev])
 
@@ -196,7 +201,7 @@ class HAEkonLocalClimateController:
         else:
             _LOGGER.info("Ekon device re-connected")
             self._devices[0].timed_out = False
-            self._devices[0].async_schedule_update_ha_state()
+            self._schedule_device_state_update()
 
     async def on_hvac_timeout(self, deviceSession):
         if len(self._devices) == 0:
@@ -206,7 +211,7 @@ class HAEkonLocalClimateController:
             return
         _LOGGER.info("HVAC Timed-out")
         self._devices[0].timed_out = True
-        asyncio.run_coroutine_threadsafe(self._devices[0].async_schedule_update_ha_state(), self.hass.loop)
+        self._schedule_device_state_update()
 
 
     async def on_hvac_data(self, deviceSession, newstate):
